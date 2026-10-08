@@ -1,8 +1,8 @@
 {
-  "name": "Цели — трекер целей",
-  "short_name": "Цели",
-  "description": "Постановка целей и отслеживание прогресса",
-  "lang": "ru",
+  "name": "Goals — goal tracker",
+  "short_name": "Goals",
+  "description": "Set goals and track your progress",
+  "lang": "en",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

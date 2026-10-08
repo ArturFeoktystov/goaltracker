@@ -52,19 +52,14 @@ export function dateOfTimestamp(ts) {
   return toISODate(new Date(ts));
 }
 
-const fmtShort = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" });
-const fmtLong = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
-const fmtMonth = new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" });
+const fmtShort = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+const fmtLong = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
+const fmtMonth = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" });
 
-export const formatShort = (s) => fmtShort.format(fromISODate(s)).replace(".", "");
+export const formatShort = (s) => fmtShort.format(fromISODate(s));
 export const formatLong = (s) => fmtLong.format(fromISODate(s));
-export const formatMonth = (s) => fmtMonth.format(fromISODate(s)).replace(" г.", "");
+export const formatMonth = (s) => fmtMonth.format(fromISODate(s));
 
 export function pluralDays(n) {
-  const a = Math.abs(n) % 100;
-  const b = a % 10;
-  if (a > 10 && a < 20) return "дней";
-  if (b === 1) return "день";
-  if (b >= 2 && b <= 4) return "дня";
-  return "дней";
+  return Math.abs(n) === 1 ? "day" : "days";
 }

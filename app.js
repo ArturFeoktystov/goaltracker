@@ -78,9 +78,9 @@ function empty(title, text = "", action = "") {
 const chartWidth = () => Math.max(240, main.clientWidth - 32 - 34);
 
 function leftLabel(left) {
-  if (left < 0) return `просрочено на ${-left} ${pluralDays(-left)}`;
-  if (left === 0) return "дедлайн сегодня";
-  return `осталось ${left} ${pluralDays(left)}`;
+  if (left < 0) return `${-left} ${pluralDays(-left)} overdue`;
+  if (left === 0) return "deadline today";
+  return `${left} ${pluralDays(left)} left`;
 }
 
 // ---------- Экран «Сегодня» ----------
@@ -92,18 +92,18 @@ async function screenToday() {
   const { done, total, ratio } = dayCompletion(tasks);
 
   const o = state.dayOffset;
-  const title = o === 0 ? "Сегодня" : o === -1 ? "Вчера" : o === 1 ? "Завтра" : formatShort(date);
+  const title = o === 0 ? "Today" : o === -1 ? "Yesterday" : o === 1 ? "Tomorrow" : formatShort(date);
   const c = 2 * Math.PI * 52;
-  const status = total === 0 ? "Задач на этот день нет" : done === total ? "Всё сделано! 🎉" : `Осталось: ${total - done}`;
+  const status = total === 0 ? "No tasks for this day" : done === total ? "All done! 🎉" : `${total - done} to go`;
 
   return `
     ${pageHead({
       title,
       subtitle: formatLong(date),
       right: `
-        <button class="icon-button" data-action="day" data-value="-1" aria-label="Предыдущий день">${ICON.back}</button>
-        ${o !== 0 ? `<button class="link" data-action="day" data-value="0">Сегодня</button>` : ""}
-        <button class="icon-button" data-action="day" data-value="1" aria-label="Следующий день">${ICON.forward}</button>`,
+        <button class="icon-button" data-action="day" data-value="-1" aria-label="Previous day">${ICON.back}</button>
+        ${o !== 0 ? `<button class="link" data-action="day" data-value="0">Today</button>` : ""}
+        <button class="icon-button" data-action="day" data-value="1" aria-label="Next day">${ICON.forward}</button>`,
     })}
     <div class="stack">
       <section class="card day-summary">
@@ -115,17 +115,17 @@ async function screenToday() {
           <div class="value num">${percent(ratio)}%</div>
         </div>
         <div>
-          <div class="muted small">Выполнено задач</div>
-          <div class="big num">${done} из ${total}</div>
+          <div class="muted small">Tasks done</div>
+          <div class="big num">${done} of ${total}</div>
           <div class="muted small">${status}</div>
         </div>
       </section>
       ${
         tasks.length
           ? `<ul class="tasks">${tasks.map((t) => taskRow(t, t.goalId && goalById.get(t.goalId))).join("")}</ul>`
-          : empty("Пока пусто", "Создайте цель с дневной нормой — задачи будут появляться здесь каждый день. Или добавьте разовую задачу.")
+          : empty("Nothing here yet", "Create a goal with a daily target and its tasks will show up here every day. Or add a one-off task.")
       }
-      <button class="btn secondary block" data-action="new-task">${ICON.plus} Разовая задача</button>
+      <button class="btn secondary block" data-action="new-task">${ICON.plus} One-off task</button>
     </div>`;
 }
 
@@ -136,18 +136,18 @@ function taskRow(task, goal) {
     : `<button class="name" data-action="task-menu" data-id="${task.id}">${esc(task.title)}</button>`;
   const meta = task.target
     ? `<div class="meta">${bar(task.actual / task.target, "sm")}<span class="num">${formatValue(task.actual)} / ${formatValue(task.target)} ${esc(unit)}</span></div>`
-    : `<div class="meta">${goal ? "Цель" : "Разовая задача"}</div>`;
+    : `<div class="meta">${goal ? "Goal" : "One-off task"}</div>`;
   const stepper = task.target
     ? `<div class="stepper">
-        <button data-action="step" data-id="${task.id}" data-value="-1" aria-label="Уменьшить">−</button>
-        <input class="task-value" data-id="${task.id}" inputmode="decimal" enterkeyhint="done" value="${formatValue(task.actual)}" aria-label="Сделано">
-        <button data-action="step" data-id="${task.id}" data-value="1" aria-label="Увеличить">+</button>
+        <button data-action="step" data-id="${task.id}" data-value="-1" aria-label="Decrease">−</button>
+        <input class="task-value" data-id="${task.id}" inputmode="decimal" enterkeyhint="done" value="${formatValue(task.actual)}" aria-label="Done so far">
+        <button data-action="step" data-id="${task.id}" data-value="1" aria-label="Increase">+</button>
       </div>`
     : "";
   return `
     <li class="card task ${task.done ? "done" : ""}">
       <button class="check ${task.done ? "on" : ""}" data-action="toggle" data-id="${task.id}" aria-pressed="${task.done}"
-        aria-label="${task.done ? "Снять отметку" : "Отметить выполненной"}">${ICON.check}</button>
+        aria-label="${task.done ? "Mark as not done" : "Mark as done"}">${ICON.check}</button>
       <div class="body">${name}${meta}</div>
       ${stepper}
     </li>`;
@@ -166,18 +166,18 @@ async function screenGoals() {
     content = `<div class="goal-grid">${visible.map((g) => goalCard(g, byGoal.get(g.id) ?? [])).join("")}</div>`;
   } else if (state.goalFilter === "active") {
     content = empty(
-      "Нет активных целей",
-      "Поставьте первую цель: например, прочитать 300 страниц по 10 в день.",
-      `<button class="btn" data-action="new-goal">Создать цель</button>`,
+      "No active goals",
+      "Set your first goal: for example, read 300 pages, 10 a day.",
+      `<button class="btn" data-action="new-goal">Create a goal</button>`,
     );
   } else {
-    content = empty(state.goalFilter === "completed" ? "Выполненных целей пока нет" : "Архив пуст");
+    content = empty(state.goalFilter === "completed" ? "No completed goals yet" : "Archive is empty");
   }
 
   return `
-    ${pageHead({ title: "Цели", right: `<button class="btn round" data-action="new-goal" aria-label="Новая цель">+</button>` })}
+    ${pageHead({ title: "Goals", right: `<button class="btn round" data-action="new-goal" aria-label="New goal">+</button>` })}
     <div class="stack">
-      ${segmented("goal-filter", state.goalFilter, [["active", "Активные"], ["completed", "Выполнены"], ["archived", "Архив"]])}
+      ${segmented("goal-filter", state.goalFilter, [["active", "Active"], ["completed", "Completed"], ["archived", "Archived"]])}
       ${content}
     </div>`;
 }
@@ -190,13 +190,13 @@ function goalCard(goal, entries) {
   const active = goal.status === "active";
 
   const facts = [];
-  if (cum !== undefined) facts.push(`<span class="num">${formatValue(totalProgress(entries))} из ${formatValue(goal.totalTarget)} ${esc(unit)}</span>`);
+  if (cum !== undefined) facts.push(`<span class="num">${formatValue(totalProgress(entries))} of ${formatValue(goal.totalTarget)} ${esc(unit)}</span>`);
   if (day !== undefined && active) {
-    const text = goal.unit === "check" ? (day >= 1 ? "сделано ✓" : "не отмечено") : `${percent(day)}% нормы`;
-    facts.push(`<span class="${day >= 1 ? "accent" : ""}">Сегодня: ${text}</span>`);
+    const text = goal.unit === "check" ? (day >= 1 ? "done ✓" : "not yet") : `${percent(day)}% of target`;
+    facts.push(`<span class="${day >= 1 ? "accent" : ""}">Today: ${text}</span>`);
   }
   if (left !== undefined && active) facts.push(`<span class="${left < 0 ? "danger" : ""}">${ICON.calendar} ${leftLabel(left)}</span>`);
-  if (cum === undefined && day === undefined) facts.push(`<span>Всего: ${formatValue(totalProgress(entries))} ${esc(unit)}</span>`);
+  if (cum === undefined && day === undefined) facts.push(`<span>Total: ${formatValue(totalProgress(entries))} ${esc(unit)}</span>`);
 
   return `
     <a class="card goal-card" href="#/goals/${goal.id}">
@@ -214,9 +214,9 @@ function goalCard(goal, entries) {
 const CHART_DAYS = 30;
 
 async function screenGoal({ id }) {
-  const back = `<a class="icon-button" href="#/goals" aria-label="Назад">${ICON.back}</a>`;
+  const back = `<a class="icon-button" href="#/goals" aria-label="Back">${ICON.back}</a>`;
   const [goal, entries] = await Promise.all([service.getGoal(id), service.entriesForGoal(id)]);
-  if (!goal) return pageHead({ title: "Цель не найдена", left: back }) + empty("Цель удалена или не существует");
+  if (!goal) return pageHead({ title: "Goal not found", left: back }) + empty("This goal was deleted or does not exist");
 
   const unit = unitShort(goal);
   const sum = totalProgress(entries);
@@ -229,59 +229,59 @@ async function screenGoal({ id }) {
   const stats = [];
   if (day !== undefined) {
     const v = goal.unit === "check" ? (day >= 1 ? "✓" : "—") : `${formatValue(dayAmount(entries, state.today))} / ${formatValue(goal.dailyTarget)}`;
-    stats.push(stat("Сегодня", v));
+    stats.push(stat("Today", v));
   }
-  if (left !== undefined) stats.push(stat("До дедлайна", left < 0 ? "просрочен" : `${left} ${pluralDays(left)}`, left < 0 && active));
+  if (left !== undefined) stats.push(stat("Deadline", left < 0 ? "overdue" : `${left} ${pluralDays(left)} left`, left < 0 && active));
   if (pace > 0 && active) {
-    stats.push(stat("Нужно в день", `${formatValue(Math.ceil(pace * 10) / 10)} ${esc(unit)}`, goal.dailyTarget && pace > goal.dailyTarget));
+    stats.push(stat("Needed per day", `${formatValue(Math.ceil(pace * 10) / 10)} ${esc(unit)}`, goal.dailyTarget && pace > goal.dailyTarget));
   }
 
   const headline =
     cum !== undefined
       ? `<div class="headline">
-          <div><div class="muted small">Общий прогресс</div>
-            <div class="value num">${formatValue(sum)} <span class="muted small">из ${formatValue(goal.totalTarget)} ${esc(unit)}</span></div></div>
+          <div><div class="muted small">Total progress</div>
+            <div class="value num">${formatValue(sum)} <span class="muted small">of ${formatValue(goal.totalTarget)} ${esc(unit)}</span></div></div>
           <div class="pct num">${percent(cum)}%</div>
         </div>
         <div style="margin-top:12px">${bar(cum, "lg")}</div>`
-      : `<div class="muted small">Всего внесено</div><div class="headline"><div class="value num">${formatValue(sum)} ${esc(unit)}</div></div>`;
+      : `<div class="muted small">Total logged</div><div class="headline"><div class="value num">${formatValue(sum)} ${esc(unit)}</div></div>`;
 
   const history = entries.length
     ? `<ul class="list card">${entries
         .map(
           (e) => `
           <li>
-            <div class="grow"><div>${formatLong(e.date)}</div>${e.note || e.taskId ? `<div class="muted small">${esc(e.note ?? "из задачи дня")}</div>` : ""}</div>
+            <div class="grow"><div>${formatLong(e.date)}</div>${e.note || e.taskId ? `<div class="muted small">${esc(e.note ?? "from the daily task")}</div>` : ""}</div>
             <b class="num">+${formatValue(e.value)} ${esc(unit)}</b>
-            <button class="icon-button" data-action="delete-entry" data-id="${e.id}" aria-label="Удалить запись">${ICON.trash}</button>
+            <button class="icon-button" data-action="delete-entry" data-id="${e.id}" aria-label="Delete entry">${ICON.trash}</button>
           </li>`,
         )
         .join("")}</ul>`
-    : `<p class="muted small" style="margin:0 4px">Записей пока нет</p>`;
+    : `<p class="muted small" style="margin:0 4px">No entries yet</p>`;
 
   const statusButtons = active
-    ? `<button class="btn secondary" data-action="goal-status" data-value="completed">${ICON.check} Отметить выполненной</button>
-       <button class="btn secondary" data-action="goal-status" data-value="archived">В архив</button>`
-    : `<button class="btn secondary" data-action="goal-status" data-value="active">Вернуть в активные</button>`;
+    ? `<button class="btn secondary" data-action="goal-status" data-value="completed">${ICON.check} Mark as completed</button>
+       <button class="btn secondary" data-action="goal-status" data-value="archived">Archive</button>`
+    : `<button class="btn secondary" data-action="goal-status" data-value="active">Make active again</button>`;
 
   return `
     ${pageHead({
       title: goal.title,
       subtitle: goal.unit === "custom" ? `${UNITS.custom.label}: ${goal.customUnit}` : UNITS[goal.unit].label,
       left: back,
-      right: `<button class="icon-button" data-action="edit-goal" aria-label="Редактировать">${ICON.edit}</button>`,
+      right: `<button class="icon-button" data-action="edit-goal" aria-label="Edit">${ICON.edit}</button>`,
     })}
     <div class="stack" data-goal="${goal.id}">
       ${goal.description ? `<p class="muted" style="margin:0 4px">${esc(goal.description)}</p>` : ""}
-      ${goal.status !== "active" ? `<div class="banner">${goal.status === "completed" ? "🎉 Цель выполнена" : "Цель в архиве"}</div>` : ""}
+      ${goal.status !== "active" ? `<div class="banner">${goal.status === "completed" ? "🎉 Goal completed" : "Goal archived"}</div>` : ""}
       <section class="card">${headline}${stats.length ? `<div class="stat-grid">${stats.join("")}</div>` : ""}</section>
-      <button class="btn block" data-action="add-entry">${ICON.plus} Внести прогресс</button>
+      <button class="btn block" data-action="add-entry">${ICON.plus} Log progress</button>
       ${progressChart(goal, entries)}
-      <h2 class="section-title">История</h2>
+      <h2 class="section-title">History</h2>
       ${history}
       <div class="btn-wrap" style="padding-top:8px">
         ${statusButtons}
-        <button class="btn danger" data-action="delete-goal">${ICON.trash} Удалить</button>
+        <button class="btn danger" data-action="delete-goal">${ICON.trash} Delete</button>
       </div>
     </div>`;
 }
@@ -306,24 +306,24 @@ function progressChart(goal, entries) {
   });
   const width = chartWidth();
   const svg = daily
-    ? barChart(data, { width, ref: goal.dailyTarget, label: "Прогресс по дням" })
-    : areaChart(data, { width, ref: goal.totalTarget, label: "Накопительный прогресс" });
-  const ref = daily ? goal.dailyTarget && "дневная норма" : goal.totalTarget && "целевое значение";
+    ? barChart(data, { width, ref: goal.dailyTarget, label: "Progress by day" })
+    : areaChart(data, { width, ref: goal.totalTarget, label: "Cumulative progress" });
+  const ref = daily ? goal.dailyTarget && "daily target" : goal.totalTarget && "total target";
 
   return `
     <section class="card">
       <div class="chart-head">
-        <h2>${daily ? "По дням" : "Накопительно"}</h2>
-        ${segmented("chart-mode", state.chartMode, [["daily", "Дни"], ["total", "Всего"]])}
+        <h2>${daily ? "By day" : "Cumulative"}</h2>
+        ${segmented("chart-mode", state.chartMode, [["daily", "Days"], ["total", "Total"]])}
       </div>
       <div class="chart">${svg}</div>
-      ${ref ? `<p class="muted small" style="margin:8px 0 0">Пунктир — ${ref}</p>` : ""}
+      ${ref ? `<p class="muted small" style="margin:8px 0 0">Dashed line: ${ref}</p>` : ""}
     </section>`;
 }
 
 // ---------- Экран «Статистика» ----------
 
-const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 async function screenStats() {
   const kind = state.statsKind;
@@ -338,8 +338,8 @@ async function screenStats() {
   let trend = "";
   if (pct !== null && prevPct !== null) {
     const d = pct - prevPct;
-    const than = kind === "week" ? "на прошлой неделе" : "в прошлом месяце";
-    trend = d === 0 ? `Так же, как ${than}` : d > 0 ? `▲ на ${d} п.п. лучше, чем ${than}` : `▼ на ${-d} п.п. хуже, чем ${than}`;
+    const than = kind === "week" ? "last week" : "last month";
+    trend = d === 0 ? `Same as ${than}` : d > 0 ? `▲ ${d} pp better than ${than}` : `▼ ${-d} pp worse than ${than}`;
   }
 
   const label = kind === "week" ? `${formatShort(period.from)} — ${formatShort(period.to)}` : formatMonth(period.from);
@@ -347,31 +347,31 @@ async function screenStats() {
     label: kind === "week" ? WEEKDAYS[i] : String(Number(d.date.slice(8))),
     value: d.percent,
     tip: formatLong(d.date),
-    tipValue: d.percent === null ? "задач нет" : `${d.percent}% · ${d.done} из ${d.total}`,
+    tipValue: d.percent === null ? "no tasks" : `${d.percent}% · ${d.done} of ${d.total}`,
   }));
 
   return `
-    ${pageHead({ title: "Статистика" })}
+    ${pageHead({ title: "Statistics" })}
     <div class="stack">
-      ${segmented("stats-kind", kind, [["week", "Неделя"], ["month", "Месяц"]])}
+      ${segmented("stats-kind", kind, [["week", "Week"], ["month", "Month"]])}
       <div class="period-nav">
-        <button class="icon-button" data-action="stats-shift" data-value="-1" aria-label="Предыдущий период">${ICON.back}</button>
+        <button class="icon-button" data-action="stats-shift" data-value="-1" aria-label="Previous period">${ICON.back}</button>
         <div class="label">${label}</div>
-        <button class="icon-button ${state.statsOffset === 0 ? "invisible" : ""}" data-action="stats-shift" data-value="1" aria-label="Следующий период">${ICON.forward}</button>
+        <button class="icon-button ${state.statsOffset === 0 ? "invisible" : ""}" data-action="stats-shift" data-value="1" aria-label="Next period">${ICON.forward}</button>
       </div>
       <div class="kpis">
-        <div class="card kpi"><div class="value">${pct === null ? "—" : pct + "%"}</div><div class="label">задач выполнено</div></div>
-        <div class="card kpi"><div class="value">${s.done}/${s.total}</div><div class="label">задачи</div></div>
-        <div class="card kpi"><div class="value">${s.goalsCompleted.length}</div><div class="label">целей выполнено</div></div>
+        <div class="card kpi"><div class="value">${pct === null ? "—" : pct + "%"}</div><div class="label">of tasks done</div></div>
+        <div class="card kpi"><div class="value">${s.done}/${s.total}</div><div class="label">tasks</div></div>
+        <div class="card kpi"><div class="value">${s.goalsCompleted.length}</div><div class="label">goals completed</div></div>
       </div>
       ${trend ? `<p class="muted small" style="margin:8px 4px 0">${trend}</p>` : ""}
       <section class="card">
-        <h2>Выполнение задач по дням, %</h2>
-        <div class="chart">${barChart(data, { width: chartWidth(), height: 200, max: 100, label: "Выполнение задач по дням" })}</div>
+        <h2>Tasks done by day, %</h2>
+        <div class="chart">${barChart(data, { width: chartWidth(), height: 200, max: 100, label: "Tasks done by day" })}</div>
       </section>
       ${
         s.progressByGoal.length
-          ? `<section class="card"><h2>Прогресс по целям за период</h2><ul class="list">${s.progressByGoal
+          ? `<section class="card"><h2>Progress by goal</h2><ul class="list">${s.progressByGoal
               .map(
                 ({ goal, amount }) =>
                   `<li><a class="grow" href="#/goals/${goal.id}">${esc(goal.title)}</a><b class="num">+${formatValue(amount)} ${esc(unitShort(goal))}</b></li>`,
@@ -381,7 +381,7 @@ async function screenStats() {
       }
       ${
         s.goalsCompleted.length
-          ? `<section class="card"><h2>Выполненные цели 🎉</h2><ul class="list">${s.goalsCompleted
+          ? `<section class="card"><h2>Completed goals 🎉</h2><ul class="list">${s.goalsCompleted
               .map((g) => `<li><span class="accent">${ICON.check}</span><a class="grow" href="#/goals/${g.id}">${esc(g.title)}</a></li>`)
               .join("")}</ul></section>`
           : ""
@@ -455,7 +455,7 @@ function confirmSheet(title, text, label, onConfirm) {
   openSheet(
     title,
     `<p class="muted" style="margin:4px 0 20px">${esc(text)}</p>
-     <div class="btn-row"><button class="btn secondary" data-close>Отмена</button><button class="btn danger" data-confirm>${label}</button></div>`,
+     <div class="btn-row"><button class="btn secondary" data-close>Cancel</button><button class="btn danger" data-confirm>${label}</button></div>`,
     (body) =>
       body.querySelector("[data-confirm]").addEventListener("click", async () => {
         await onConfirm();
@@ -485,33 +485,33 @@ function goalForm(goal) {
 
   return `
     <form id="goal-form" novalidate>
-      <label class="field"><span>Название</span>
-        <input class="input" name="title" value="${esc(v.title)}" placeholder="Прочитать «Войну и мир»" ${goal ? "" : "autofocus"}></label>
-      <label class="field"><span>Описание (необязательно)</span>
+      <label class="field"><span>Title</span>
+        <input class="input" name="title" value="${esc(v.title)}" placeholder="Read War and Peace" ${goal ? "" : "autofocus"}></label>
+      <label class="field"><span>Description (optional)</span>
         <textarea class="input" name="description" rows="2">${esc(v.description)}</textarea></label>
-      <div class="field"><span>Единица измерения</span>
+      <div class="field"><span>Unit</span>
         <div class="chips">${chips}</div>
-        <input class="input" name="customUnit" value="${esc(v.customUnit)}" placeholder="напр. стаканы воды" style="margin-top:8px">
+        <input class="input" name="customUnit" value="${esc(v.customUnit)}" placeholder="e.g. glasses of water" style="margin-top:8px">
       </div>
       <div class="modes">
-        <p>Режим цели — можно оба сразу</p>
+        <p>Goal type: choose one or both</p>
         <label class="toggle"><input type="checkbox" name="useTotal" ${v.useTotal ? "checked" : ""}>
-          <span><b>Накопительный</b><small data-text="total"></small></span></label>
+          <span><b>Total amount</b><small data-text="total"></small></span></label>
         <div class="mode-value" data-for="useTotal"><input class="input" name="total" inputmode="decimal" value="${v.total}"></div>
         <label class="toggle"><input type="checkbox" name="useDaily" ${v.useDaily ? "checked" : ""}>
-          <span><b>Периодический</b><small data-text="daily"></small></span></label>
-        <div class="mode-value" data-for="useDaily"><input class="input" name="daily" inputmode="decimal" value="${v.daily}" placeholder="Норма в день"></div>
-        <p class="hint" data-for="useDaily">Задачи на каждый день появятся в «Сегодня» автоматически.</p>
+          <span><b>Daily target</b><small data-text="daily"></small></span></label>
+        <div class="mode-value" data-for="useDaily"><input class="input" name="daily" inputmode="decimal" value="${v.daily}" placeholder="Per day"></div>
+        <p class="hint" data-for="useDaily">A task for each day will appear in Today automatically.</p>
       </div>
       <div class="two-cols">
-        <label class="field"><span>Начало</span><input class="input" type="date" name="startDate" value="${v.startDate}"></label>
-        <label class="field"><span>Дедлайн</span><input class="input" type="date" name="deadline" value="${v.deadline}"></label>
+        <label class="field"><span>Start</span><input class="input" type="date" name="startDate" value="${v.startDate}"></label>
+        <label class="field"><span>Deadline</span><input class="input" type="date" name="deadline" value="${v.deadline}"></label>
       </div>
       <p class="hint" data-hint style="margin:-8px 0 16px"></p>
       <p class="form-error" data-error></p>
       <div class="btn-row">
-        <button type="button" class="btn secondary" data-close>Отмена</button>
-        <button type="submit" class="btn">${goal ? "Сохранить" : "Создать цель"}</button>
+        <button type="button" class="btn secondary" data-close>Cancel</button>
+        <button type="submit" class="btn">${goal ? "Save" : "Create goal"}</button>
       </div>
     </form>`;
 }
@@ -530,28 +530,28 @@ function readGoalForm(form) {
 
   // Видимость и тексты зависят от выбранной единицы и режимов
   f.customUnit.hidden = unit !== "custom";
-  form.querySelector('[data-text="total"]').textContent = isCheck ? "Сделать N раз всего" : "Общий объём, напр. 300 страниц";
-  form.querySelector('[data-text="daily"]').textContent = isCheck ? "Отмечать каждый день" : "Дневная норма, напр. 10 страниц в день";
-  f.total.placeholder = isCheck ? "Сколько раз" : "Целевое значение";
+  form.querySelector('[data-text="total"]').textContent = isCheck ? "Do it N times in total" : "e.g. 300 pages in total";
+  form.querySelector('[data-text="daily"]').textContent = isCheck ? "Check it off every day" : "e.g. 10 pages a day";
+  f.total.placeholder = isCheck ? "How many times" : "Total target";
   form.querySelectorAll('[data-for="useTotal"]').forEach((el) => (el.hidden = !useTotal));
   form.querySelectorAll('[data-for="useDaily"]').forEach((el) => (el.hidden = !useDaily));
   form.querySelector('[data-for="useDaily"].mode-value').hidden = !useDaily || isCheck;
   f.deadline.min = startDate;
 
   let error = "";
-  if (!f.title.value.trim()) error = "Введите название";
-  else if (unit === "custom" && !f.customUnit.value.trim()) error = "Укажите единицу измерения";
-  else if (useTotal && !(total > 0)) error = isCheck ? "Укажите, сколько раз" : "Укажите целевое значение";
-  else if (useDaily && !(daily > 0)) error = "Укажите дневную норму";
-  else if (deadline && deadline < startDate) error = "Дедлайн раньше даты начала";
+  if (!f.title.value.trim()) error = "Enter a title";
+  else if (unit === "custom" && !f.customUnit.value.trim()) error = "Enter a unit";
+  else if (useTotal && !(total > 0)) error = isCheck ? "Enter how many times" : "Enter the total target";
+  else if (useDaily && !(daily > 0)) error = "Enter the daily target";
+  else if (deadline && deadline < startDate) error = "The deadline is before the start date";
 
   let hint = "";
   if (total > 0 && deadline && deadline >= startDate) {
     const days = diffDays(startDate, deadline) + 1;
-    hint = `${days} ${pluralDays(days)} → нужно ≈ ${formatValue(Math.ceil((total / days) * 10) / 10)} в день`;
+    hint = `${days} ${pluralDays(days)} → about ${formatValue(Math.ceil((total / days) * 10) / 10)} a day`;
   } else if (total > 0 && daily > 0 && !isCheck) {
     const days = Math.ceil(total / daily);
-    hint = `При норме ${formatValue(daily)} в день — ${days} ${pluralDays(days)}`;
+    hint = `At ${formatValue(daily)} a day: ${days} ${pluralDays(days)}`;
   }
   form.querySelector("[data-hint]").textContent = hint;
 
@@ -571,7 +571,7 @@ function readGoalForm(form) {
 }
 
 function openGoalForm(goal) {
-  openSheet(goal ? "Редактировать цель" : "Новая цель", goalForm(goal), (body) => {
+  openSheet(goal ? "Edit goal" : "New goal", goalForm(goal), (body) => {
     const form = body.querySelector("form");
     let touched = false;
     const refresh = () => {
@@ -598,13 +598,13 @@ function openGoalForm(goal) {
 
 function openTaskForm(date) {
   openSheet(
-    "Новая задача",
+    "New task",
     `<form>
-      <label class="field"><span>Название</span><input class="input" name="title" placeholder="Позвонить врачу" autofocus></label>
-      <label class="field"><span>Целевое значение (необязательно)</span>
-        <input class="input" name="target" inputmode="decimal" placeholder="напр. 20">
-        <div class="hint">Оставьте пустым — будет простой чекбокс</div></label>
-      <button class="btn block">Добавить</button>
+      <label class="field"><span>Title</span><input class="input" name="title" placeholder="Call the dentist" autofocus></label>
+      <label class="field"><span>Target (optional)</span>
+        <input class="input" name="target" inputmode="decimal" placeholder="e.g. 20">
+        <div class="hint">Leave empty for a simple checkbox</div></label>
+      <button class="btn block">Add</button>
     </form>`,
     (body) =>
       body.querySelector("form").addEventListener("submit", async (e) => {
@@ -620,16 +620,16 @@ function openTaskForm(date) {
 function openEntryForm(goal) {
   const unit = unitShort(goal);
   openSheet(
-    "Внести прогресс",
+    "Log progress",
     `<form>
       <div class="two-cols">
-        <label class="field"><span>Значение${unit ? `, ${esc(unit)}` : ""}</span>
+        <label class="field"><span>Amount${unit ? `, ${esc(unit)}` : ""}</span>
           <input class="input" name="value" inputmode="decimal" value="${goal.unit === "check" ? 1 : ""}" autofocus></label>
-        <label class="field"><span>Дата</span><input class="input" type="date" name="date" value="${state.today}" max="${state.today}"></label>
+        <label class="field"><span>Date</span><input class="input" type="date" name="date" value="${state.today}" max="${state.today}"></label>
       </div>
-      <label class="field"><span>Заметка (необязательно)</span><input class="input" name="note"></label>
-      <p class="hint" style="margin:-8px 0 16px">Если на эту дату есть задача по цели, значение добавится к ней.</p>
-      <button class="btn block">Сохранить</button>
+      <label class="field"><span>Note (optional)</span><input class="input" name="note"></label>
+      <p class="hint" style="margin:-8px 0 16px">If the goal has a task on this date, the amount is added to it.</p>
+      <button class="btn block">Save</button>
     </form>`,
     (body) =>
       body.querySelector("form").addEventListener("submit", async (e) => {
@@ -658,7 +658,7 @@ const ACTIONS = {
   "task-menu": async (_, id) => {
     const tasks = await service.tasksForDate(addDays(state.today, state.dayOffset));
     const task = tasks.find((t) => t.id === id);
-    if (task) confirmSheet("Удалить задачу?", `«${task.title}» будет удалена.`, "Удалить", () => service.deleteTask(id));
+    if (task) confirmSheet("Delete task?", `"${task.title}" will be deleted.`, "Delete", () => service.deleteTask(id));
   },
   "goal-filter": (v) => {
     state.goalFilter = v;
@@ -671,7 +671,7 @@ const ACTIONS = {
   "goal-status": (v) => service.setGoalStatus(currentGoalId(), v),
   "delete-goal": () => {
     const id = currentGoalId();
-    confirmSheet("Удалить цель?", "Цель, её задачи и вся история прогресса будут удалены.", "Удалить", async () => {
+    confirmSheet("Delete goal?", "The goal, its tasks and all its progress history will be deleted.", "Delete", async () => {
       await service.deleteGoal(id);
       location.hash = "#/goals";
     });

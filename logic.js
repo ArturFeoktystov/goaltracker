@@ -9,13 +9,13 @@
 import { addDays, dateRange, diffDays } from "./dates.js";
 
 export const UNITS = {
-  pages: { label: "страницы", short: "стр." },
-  km: { label: "км", short: "км" },
-  hours: { label: "часы", short: "ч" },
-  minutes: { label: "минуты", short: "мин" },
-  reps: { label: "повторы", short: "раз" },
-  custom: { label: "своя единица", short: "" },
-  check: { label: "галочка", short: "" },
+  pages: { label: "pages", short: "pages" },
+  km: { label: "km", short: "km" },
+  hours: { label: "hours", short: "h" },
+  minutes: { label: "minutes", short: "min" },
+  reps: { label: "reps", short: "reps" },
+  custom: { label: "custom", short: "" },
+  check: { label: "checkbox", short: "" },
 };
 
 /** Для цели без дедлайна дневные задачи создаются на столько дней вперёд. */
@@ -29,7 +29,7 @@ export const clamp01 = (x) => Math.max(0, Math.min(1, x));
 export const percent = (ratio) => Math.round(clamp01(ratio) * 100);
 
 export function formatValue(v) {
-  return Number.isInteger(v) ? String(v) : v.toFixed(1).replace(".", ",");
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
 /** Сумма всех записей прогресса. */

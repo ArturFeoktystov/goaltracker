@@ -1,68 +1,71 @@
-# Цели — трекер целей
+# Goals
 
-Приложение для постановки целей и отслеживания прогресса: на компьютере в браузере и на iPhone
-с экрана «Домой». Без App Store, без сервера и без регистрации. Все данные хранятся на устройстве
-(IndexedDB) и работают офлайн.
+A goal tracker for the laptop (in the browser) and the iPhone (from the home screen). Set a goal,
+log progress every day, see how far along you are.
 
-## Установка на iPhone
+It is a web app you add to the home screen. No App Store, no server, no sign-up. All data stays on
+the device (IndexedDB) and works offline.
 
-1. Открыть <https://arturfeoktystov.github.io/goaltracker/> в **Safari**.
-2. «Поделиться» → **«На экран „Домой“»** → «Добавить».
-3. Запускать с иконки на экране «Домой».
+## Install on iPhone
 
-Данные из Safari и из приложения на экране «Домой» хранятся раздельно — пользуйтесь приложением с экрана «Домой».
-Данные компьютера и телефона тоже раздельные, пока не подключена облачная синхронизация (см. ниже).
+1. Open <https://arturfeoktystov.github.io/goaltracker/> in **Safari**.
+2. Tap **Share** → **Add to Home Screen** → **Add**.
+3. Open it from the home screen.
 
-Новая версия появляется сама: после `git push` GitHub Pages обновит сайт за минуту, а приложение
-подхватит её при следующем запуске.
+Data entered in Safari and in the home-screen app is stored separately — use the home-screen app.
+The laptop and the phone also keep separate data until cloud sync is added (see below).
 
-## Возможности
+New versions arrive on their own: after `git push`, GitHub Pages updates the site within a minute and
+the app picks it up on the next launch.
 
-- **Цели** с единицами: страницы, км, часы, минуты, повторы, своя единица или просто галочка.
-- **Режимы цели** — накопительный (общий объём, напр. 300 страниц) и/или периодический (норма в день,
-  напр. 10 страниц). Можно оба сразу, с дедлайном или без.
-- **Сегодня** — задачи на день, процент выполнения дня, быстрый ввод значения (− / + или число) и отметка «сделано».
-  Можно листать дни и добавлять разовые задачи.
-- **Детали цели** — общий прогресс, дни до дедлайна, сколько нужно в день, график по дням и накопительно, история.
-- **Статистика** — неделя и месяц: процент выполненных задач, сравнение с прошлым периодом,
-  прогресс по целям, выполненные цели.
+## Features
 
-## Правила
+- **Goals** measured in pages, km, hours, minutes, reps, a custom unit, or just a checkbox.
+- **Goal types**: a total amount (e.g. 300 pages) and/or a daily target (e.g. 10 pages a day) — both at
+  once is fine, with or without a deadline.
+- **Today**: the day's tasks, the day's completion percentage, quick input (− / + or type a number) and
+  a done checkmark. Browse other days, add one-off tasks.
+- **Goal details**: total progress, days to the deadline, the pace needed, a chart by day and cumulative,
+  history.
+- **Statistics**: week and month — share of tasks done, change vs the previous period, progress by goal,
+  completed goals.
 
-| Что | Правило |
+## Rules
+
+| What | Rule |
 |---|---|
-| Накопительный прогресс | сумма записей прогресса / целевое значение |
-| Дневной прогресс | внесённое за день / дневная норма |
-| Процент дня | выполненные задачи / все задачи дня (7 из 10 = 70 %) |
-| Дневные задачи | для цели с нормой — на каждый день от начала до дедлайна; без дедлайна — на 14 дней вперёд, окно сдвигается при каждом запуске |
-| Задача выполнена | когда достигнута дневная норма (или отмечена галочка) |
-| Задача и прогресс | значение в задаче цели = одна запись прогресса, поэтому день и общий прогресс всегда сходятся; ручная запись на день с задачей добавляется к задаче |
-| Завершение цели | автоматически, когда прогресс достиг целевого значения; если прогресс снова ниже (удалили запись) — цель возвращается в активные |
-| Статистика | будущие дни не учитываются, чтобы не занижать процент |
+| Total progress | sum of progress entries / total target |
+| Daily progress | amount logged that day / daily target |
+| Day completion | tasks done / all tasks of the day (7 of 10 = 70 %) |
+| Daily tasks | for a goal with a daily target: one per day from the start date to the deadline; without a deadline, 14 days ahead, rolling forward on every launch |
+| Task done | when the daily target is reached (or the checkbox is ticked) |
+| Tasks and progress | the amount in a goal's task is exactly one progress entry, so daily and total progress always agree; a manual entry on a day that has a task is added to that task |
+| Goal completion | automatic when progress reaches the total target; back to active if it drops below again (an entry was deleted) |
+| Statistics | future days are not counted, so they don't pull the percentage down |
 
-## Разработка
+## Development
 
 ```
 npm start          # http://localhost:5180
-npm test           # тесты бизнес-логики (node --test)
+npm test           # unit tests for the business logic (node --test)
 ```
 
-| Файл | Что это |
+| File | What it is |
 |---|---|
-| `index.html`, `style.css` | Каркас и стили |
-| `app.js` | Интерфейс: экраны, формы, действия |
-| `charts.js` | SVG-графики без библиотек |
-| `service.js` | Сценарии: цели, автосоздание задач, ввод прогресса, автозавершение |
-| `logic.js`, `stats.js`, `dates.js` | Чистые функции: расчёт прогресса, статистика, даты (с тестами) |
-| `db.js` | Хранилище в IndexedDB |
-| `memory-store.js` | То же хранилище в памяти — для тестов |
-| `manifest.webmanifest`, `icons/` | Название и иконка на экране «Домой» (`npm run icons` пересоздаёт иконки) |
-| `sw.js` | Service worker: свежие файлы при каждом запуске, последняя копия — для офлайна |
+| `index.html`, `style.css` | The shell and styles |
+| `app.js` | UI: screens, forms, actions |
+| `charts.js` | SVG charts, no library |
+| `service.js` | Use cases: goals, automatic daily tasks, progress input, auto-completion |
+| `logic.js`, `stats.js`, `dates.js` | Pure functions: progress math, statistics, dates (tested) |
+| `db.js` | IndexedDB storage |
+| `memory-store.js` | The same storage in memory, for tests |
+| `manifest.webmanifest`, `icons/` | Home-screen name and icon (`npm run icons` regenerates the icons) |
+| `sw.js` | Service worker: fresh files on every launch, last copy for offline |
 
-## Облачная синхронизация (на будущее)
+## Cloud sync (later)
 
-Интерфейс и сервис не знают, где лежат данные: они работают через интерфейс хранилища (описан в `db.js`).
-У каждой записи есть `updatedAt` и мягкое удаление `deleted`, а `changedSince(ts)` отдаёт изменения
-с момента последней синхронизации. Для синхронизации достаточно написать хранилище-обёртку: читать
-и писать локально, а в фоне обмениваться изменениями с сервером по правилу «последняя запись побеждает».
-Подойдёт любой бэкенд (Supabase, Firebase, свой API).
+The UI and the service don't know where data lives: they go through the storage interface described in
+`db.js`. Every record has `updatedAt` and a soft-delete flag `deleted`, and `changedSince(ts)` returns
+everything changed since the last sync. Sync is a wrapper store: read and write locally, and in the
+background exchange changes with a server, last write wins. Any backend works (Supabase, Firebase, your
+own API).
