@@ -4,7 +4,7 @@
 // поэтому быстрые нажатия «+» не перетирают друг друга. Внутренние _методы вызываются уже под очередью.
 
 import { today as todayFn } from "./dates.js";
-import { goalTaskId, isTaskDone, plannedTaskDates, totalProgress } from "./logic.js";
+import { effectiveDailyTarget, goalTaskId, isTaskDone, plannedTaskDates, totalProgress } from "./logic.js";
 
 export function newId() {
   // randomUUID есть только в защищённом контексте (https или localhost)
@@ -14,9 +14,6 @@ export function newId() {
 
 const entryIdForTask = (taskId) => `entry_${taskId}`;
 const byTitle = (a, b) => a.title.localeCompare(b.title, "ru");
-
-/** Для цели-«галочки» дневная задача — чекбокс без нормы. */
-const taskTarget = (goal) => (goal.unit === "check" ? undefined : goal.dailyTarget);
 
 function normalizeInput(input) {
   const g = { ...input, title: input.title.trim(), description: input.description?.trim() || undefined };
@@ -95,7 +92,6 @@ export class GoalService {
       const updated = { ...goal, ...normalizeInput(input), updatedAt: Date.now() };
       await this.store.goals.put(updated);
       await this._syncGoalTasks(updated);
-      await this._refreshGoalTasksInfo(updated);
     });
   }
 
@@ -137,51 +133,47 @@ export class GoalService {
 
   /**
    * Приводит дневные задачи цели к плану: создаёт недостающие, восстанавливает удалённые
-   * сегодняшние и будущие, убирает будущие пустые задачи, которых больше нет в плане.
+   * сегодняшние и будущие, убирает будущие пустые задачи, которых больше нет в плане,
+   * и обновляет название и норму в сегодняшних и будущих задачах (у цели с темпом норма
+   * пересчитывается каждый день).
    */
   async _syncGoalTasks(goal) {
     const today = this.now();
     const planned = plannedTaskDates(goal, today);
     const plannedSet = new Set(planned);
     const ts = Date.now();
+    const entries = await this.store.entries.where("goalId", goal.id);
+    const target = goal.unit === "check" ? undefined : effectiveDailyTarget(goal, entries, today);
 
     const existing = await this.store.tasks.bulkGet(planned.map((d) => goalTaskId(goal.id, d)));
-    const toPut = [];
+    const changed = new Map();
     planned.forEach((date, i) => {
       const t = existing[i];
       if (!t) {
-        toPut.push({
+        changed.set(goalTaskId(goal.id, date), {
           id: goalTaskId(goal.id, date),
           goalId: goal.id,
           title: goal.title,
           date,
-          target: taskTarget(goal),
+          target,
           actual: 0,
           done: false,
           updatedAt: ts,
         });
       } else if (t.deleted && date >= today) {
-        toPut.push({ ...t, deleted: false, updatedAt: ts });
+        changed.set(t.id, { ...t, deleted: false, updatedAt: ts });
       }
     });
     for (const t of await this.store.tasks.where("goalId", goal.id)) {
-      if (t.date > today && !plannedSet.has(t.date) && t.actual === 0) toPut.push({ ...t, deleted: true, updatedAt: ts });
-    }
-    await this.store.tasks.bulkPut(toPut);
-  }
-
-  /** После правки цели — новое название и норма в сегодняшних и будущих задачах. */
-  async _refreshGoalTasksInfo(goal) {
-    const today = this.now();
-    const target = taskTarget(goal);
-    const ts = Date.now();
-    const changed = (await this.store.tasks.where("goalId", goal.id))
-      .filter((t) => t.date >= today && (t.title !== goal.title || t.target !== target))
-      .map((t) => {
+      if (changed.has(t.id)) continue;
+      if (t.date > today && !plannedSet.has(t.date) && t.actual === 0) {
+        changed.set(t.id, { ...t, deleted: true, updatedAt: ts });
+      } else if (t.date >= today && plannedSet.has(t.date) && (t.title !== goal.title || t.target !== target)) {
         const next = { ...t, title: goal.title, target };
-        return { ...next, done: isTaskDone(next), updatedAt: ts };
-      });
-    await this.store.tasks.bulkPut(changed);
+        changed.set(t.id, { ...next, done: isTaskDone(next), updatedAt: ts });
+      }
+    }
+    await this.store.tasks.bulkPut([...changed.values()]);
   }
 
   // ---------- Задачи ----------

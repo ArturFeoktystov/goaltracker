@@ -120,3 +120,43 @@ test("удаление цели скрывает её задачи и запис
   assert.equal((await svc.tasksForDate(TODAY)).length, 0);
   assert.equal((await svc.entriesForGoal(g.id)).length, 0);
 });
+
+test("цель с объёмом и дедлайном без нормы: в «Сегодня» задача с темпом", async () => {
+  let now = TODAY;
+  const svc = new GoalService(createMemoryStore(), () => now);
+  const g = await svc.createGoal({ title: "System Design", unit: "pages", totalTarget: 310, startDate: TODAY, deadline: addDays(TODAY, 23) });
+  const tasks = await svc.tasksInRange(TODAY, addDays(TODAY, 100));
+  assert.equal(tasks.length, 24);
+  assert.ok(tasks.every((t) => t.target === 13), "310 страниц / 24 дня ≈ 13");
+
+  // сделали больше нормы — сегодняшняя норма не меняется, задача выполнена
+  const [today] = await svc.tasksForDate(TODAY);
+  await svc.setTaskActual(today.id, 40);
+  assert.equal((await svc.tasksForDate(TODAY))[0].target, 13);
+  assert.equal((await svc.tasksForDate(TODAY))[0].done, true);
+
+  // на следующий день норма пересчитана по остатку: 270 / 23 ≈ 12
+  now = addDays(TODAY, 1);
+  await svc.ensureDailyTasks();
+  assert.equal((await svc.tasksForDate(now))[0].target, 12);
+  assert.equal((await svc.tasksForDate(TODAY))[0].target, 13, "прошлые дни не меняются");
+  assert.equal(g.dailyTarget, undefined);
+});
+
+test("цель с объёмом и дедлайном, созданная раньше: задачи появляются при запуске, но не задним числом", async () => {
+  const store = createMemoryStore();
+  const ts = Date.now();
+  await store.goals.put({ id: "old", title: "Книга", unit: "pages", totalTarget: 100, startDate: addDays(TODAY, -3), deadline: addDays(TODAY, 9), status: "active", createdAt: ts, updatedAt: ts });
+  const svc = new GoalService(store, () => TODAY);
+  await svc.ensureDailyTasks();
+  const tasks = await svc.tasksInRange(addDays(TODAY, -10), addDays(TODAY, 100));
+  assert.equal(tasks.length, 10);
+  assert.equal(tasks[0].target, 10);
+  assert.ok(tasks.every((t) => t.date >= TODAY));
+});
+
+test("цель без нормы и без дедлайна в «Сегодня» не попадает", async () => {
+  const svc = fresh();
+  await svc.createGoal({ title: "Когда-нибудь", unit: "pages", totalTarget: 500, startDate: TODAY });
+  assert.equal((await svc.tasksForDate(TODAY)).length, 0);
+});

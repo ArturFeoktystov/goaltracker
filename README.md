@@ -38,6 +38,8 @@ the app picks it up on the next launch.
 | Daily progress | amount logged that day / daily target |
 | Day completion | tasks done / all tasks of the day (7 of 10 = 70 %) |
 | Daily tasks | for a goal with a daily target: one per day from the start date to the deadline; without a deadline, 14 days ahead, rolling forward on every launch |
+| Pace | a goal with a total and a deadline but no daily target still gets a task every day from today to the deadline: its target is what is left at the start of the day / days left (including today), so a missed day raises the next days' target |
+| Not in Today | a goal with neither a daily target nor a deadline |
 | Task done | when the daily target is reached (or the checkbox is ticked) |
 | Tasks and progress | the amount in a goal's task is exactly one progress entry, so daily and total progress always agree; a manual entry on a day that has a task is added to that task |
 | Goal completion | automatic when progress reaches the total target; back to active if it drops below again (an entry was deleted) |

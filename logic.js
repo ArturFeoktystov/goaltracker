@@ -48,10 +48,32 @@ export function dayAmount(entries, date) {
   return entries.filter((e) => e.date === date).reduce((s, e) => s + e.value, 0);
 }
 
-/** Дневной прогресс 0..1: внесённое за день / дневная норма. */
+/**
+ * Норма на день. Если дневная норма не задана, но есть общий объём и дедлайн, —
+ * темп: остаток на начало дня / дни до дедлайна (сегодня включительно).
+ * Прогресс за сам день норму не меняет, поэтому отметка «сделано» не прыгает.
+ */
+export function effectiveDailyTarget(goal, entries, date) {
+  if (goal.dailyTarget) return goal.dailyTarget;
+  if (!isPaceGoal(goal)) return undefined;
+  const days = diffDays(date, goal.deadline) + 1;
+  const remaining = goal.totalTarget - totalProgress(entries.filter((e) => e.date < date));
+  if (days <= 0 || remaining <= 0) return undefined;
+  const pace = remaining / days;
+  // целые единицы — округляем вверх до целого, км и часы — до десятых
+  return goal.unit === "km" || goal.unit === "hours" ? Math.ceil(pace * 10) / 10 : Math.ceil(pace);
+}
+
+/** Цель с общим объёмом и дедлайном, но без дневной нормы: норма на день считается по темпу. */
+export function isPaceGoal(goal) {
+  return !goal.dailyTarget && !!goal.totalTarget && !!goal.deadline && goal.unit !== "check";
+}
+
+/** Дневной прогресс 0..1: внесённое за день / норма на день. */
 export function dailyRatio(goal, entries, date) {
-  if (!goal.dailyTarget) return undefined;
-  return clamp01(dayAmount(entries, date) / goal.dailyTarget);
+  const target = effectiveDailyTarget(goal, entries, date);
+  if (!target) return undefined;
+  return clamp01(dayAmount(entries, date) / target);
 }
 
 /** Процент выполнения дня: выполненные задачи / все задачи. */
@@ -85,9 +107,20 @@ export function goalTaskId(goalId, date) {
   return `${goalId}_${date}`;
 }
 
-/** Даты, на которые у цели должны быть дневные задачи: от начала до дедлайна или на окно вперёд. */
+/**
+ * Даты, на которые у цели должны быть дневные задачи:
+ * с дневной нормой — от начала до дедлайна (или на окно вперёд);
+ * с темпом — от сегодня до дедлайна (прошлые дни норму задним числом не получают).
+ */
 export function plannedTaskDates(goal, now) {
-  if (!goal.dailyTarget || goal.status !== "active" || goal.deleted) return [];
-  const to = goal.deadline ?? addDays(now, ROLLING_WINDOW_DAYS);
-  return to < goal.startDate ? [] : dateRange(goal.startDate, to);
+  if (goal.status !== "active" || goal.deleted) return [];
+  if (goal.dailyTarget) {
+    const to = goal.deadline ?? addDays(now, ROLLING_WINDOW_DAYS);
+    return to < goal.startDate ? [] : dateRange(goal.startDate, to);
+  }
+  if (isPaceGoal(goal)) {
+    const from = goal.startDate > now ? goal.startDate : now;
+    return goal.deadline < from ? [] : dateRange(from, goal.deadline);
+  }
+  return [];
 }

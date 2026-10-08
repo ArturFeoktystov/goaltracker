@@ -10,6 +10,7 @@ import {
   dailyRatio,
   dayAmount,
   dayCompletion,
+  effectiveDailyTarget,
   daysLeft,
   formatValue,
   percent,
@@ -228,7 +229,7 @@ async function screenGoal({ id }) {
 
   const stats = [];
   if (day !== undefined) {
-    const v = goal.unit === "check" ? (day >= 1 ? "✓" : "—") : `${formatValue(dayAmount(entries, state.today))} / ${formatValue(goal.dailyTarget)}`;
+    const v = goal.unit === "check" ? (day >= 1 ? "✓" : "—") : `${formatValue(dayAmount(entries, state.today))} / ${formatValue(effectiveDailyTarget(goal, entries, state.today))}`;
     stats.push(stat("Today", v));
   }
   if (left !== undefined) stats.push(stat("Deadline", left < 0 ? "overdue" : `${left} ${pluralDays(left)} left`, left < 0 && active));
@@ -501,7 +502,7 @@ function goalForm(goal) {
         <label class="toggle"><input type="checkbox" name="useDaily" ${v.useDaily ? "checked" : ""}>
           <span><b>Daily target</b><small data-text="daily"></small></span></label>
         <div class="mode-value" data-for="useDaily"><input class="input" name="daily" inputmode="decimal" value="${v.daily}" placeholder="Per day"></div>
-        <p class="hint" data-for="useDaily">A task for each day will appear in Today automatically.</p>
+        <p class="hint" data-today-hint></p>
       </div>
       <div class="two-cols">
         <label class="field"><span>Start</span><input class="input" type="date" name="startDate" value="${v.startDate}"></label>
@@ -537,6 +538,11 @@ function readGoalForm(form) {
   form.querySelectorAll('[data-for="useDaily"]').forEach((el) => (el.hidden = !useDaily));
   form.querySelector('[data-for="useDaily"].mode-value').hidden = !useDaily || isCheck;
   f.deadline.min = startDate;
+  form.querySelector("[data-today-hint]").textContent = useDaily
+    ? "A task for each day will appear in Today automatically."
+    : useTotal && deadline && !isCheck
+      ? "No daily target: Today will show the pace needed to finish by the deadline."
+      : "Without a daily target or a deadline, this goal won't appear in Today.";
 
   let error = "";
   if (!f.title.value.trim()) error = "Enter a title";
