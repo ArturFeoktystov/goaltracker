@@ -1,5 +1,5 @@
 // Генерирует PNG-иконки (для iOS и манифеста) без внешних зависимостей.
-// Рисует тот же дизайн, что и public/icon.svg: мишень на тёмном фоне.
+// Мишень на тёмном фоне. Запуск: npm run icons
 import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
@@ -80,7 +80,7 @@ function render(size, { rounded }) {
 }
 
 // iOS сам скругляет углы, поэтому apple-touch-icon и maskable — квадратные.
-writeFileSync('public/apple-touch-icon.png', render(180, { rounded: false }));
-writeFileSync('public/icon-192.png', render(192, { rounded: false }));
-writeFileSync('public/icon-512.png', render(512, { rounded: false }));
-console.log('Icons generated in public/');
+writeFileSync('icons/apple-touch-icon.png', render(180, { rounded: false }));
+writeFileSync('icons/icon-192.png', render(192, { rounded: false }));
+writeFileSync('icons/icon-512.png', render(512, { rounded: false }));
+console.log('Icons generated in icons/');

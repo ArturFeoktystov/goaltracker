@@ -1,5 +1,3 @@
-node_modules
-dist
-dev-dist
-*.log
-*.tsbuildinfo
+node_modules/
+.DS_Store
+.claude/
